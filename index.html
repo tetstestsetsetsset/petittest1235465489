@@ -2170,7 +2170,10 @@ function ReviewModeOverlay({rows,filtered,onClose}){
 }
 
 function App(){
+  // ── Démarrage : on affiche un écran de chargement le temps que Firebase réponde
+  const [fbLoaded, setFbLoaded] = useState(false);
   const [rows,setRows]=useState(()=>{
+    // Ne charger le localStorage qu'en fallback si Firebase ne répond pas
     const s=lsLoad();const curM=getCurrentMonthKey();
     if(!s) return SAMPLE_DATA;
     if(s.lastResetMonth&&s.lastResetMonth!==curM) return applyMonthlyReset(s.rows,s.lastResetMonth);
@@ -2217,9 +2220,10 @@ function App(){
 
   // ── Firebase : synchronisation multi-appareils ────────────────────────────
   useEffect(()=>{
-    if(!window.__fb) return;
+    if(!window.__fb) { setFbLoaded(true); return; }
     // Écouter les changements en temps réel
     const unsub = fbSubscribe((data)=>{
+      setFbLoaded(true); // Firebase a répondu — on peut afficher l'app
       if(!data) return;
       const curM = getCurrentMonthKey();
       if(data.lastResetMonth && data.lastResetMonth !== curM){
@@ -2228,11 +2232,22 @@ function App(){
         setRows(data.rows);
       }
       if(data.nextId) setNextId(data.nextId);
-      // Mettre en cache local
       lsSave(data);
     });
-    return () => unsub();
+    // Timeout de sécurité : si Firebase ne répond pas en 5s, afficher quand même
+    const timeout = setTimeout(() => setFbLoaded(true), 5000);
+    return () => { unsub(); clearTimeout(timeout); };
   },[]);
+
+  // ── Écran de chargement Firebase ──────────────────────────────────────────
+  if(!fbLoaded) return (
+    <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",
+      justifyContent:"center",background:C.bg,flexDirection:"column",gap:16}}>
+      <div style={{fontSize:40}}>☁️</div>
+      <div style={{fontSize:15,color:C.muted,fontWeight:600}}>Chargement de vos données…</div>
+      <div style={{fontSize:12,color:C.light}}>Synchronisation Firebase en cours</div>
+    </div>
+  );
 
   // ── Récap fin de journée (après 16h50) ──
   useEffect(()=>{

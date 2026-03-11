@@ -3356,33 +3356,41 @@ function LoginScreen({ onLogin }) {
 // 🌐 WRAPPER PRINCIPAL AVEC AUTH
 // ══════════════════════════════════════════════════════════════════
 function Root() {
-  const [fbReady,      setFbReady]      = React.useState(!!window.__fbReady);
-  const [authed,       setAuthed]       = React.useState(false);
-  const [checkingAuth, setCheckingAuth] = React.useState(true);
+  const [status, setStatus] = React.useState("waiting"); // waiting | ready | authed
+  const [authed, setAuthed] = React.useState(false);
 
   React.useEffect(() => {
-    if (window.__fbReady) { setFbReady(true); return; }
-    const handler = () => setFbReady(true);
-    window.addEventListener("fb-ready", handler);
-    return () => window.removeEventListener("fb-ready", handler);
+    const init = () => {
+      const fb = window.__fb;
+      if (!fb) return;
+      fb.onAuthStateChanged(fb.auth, (user) => {
+        setAuthed(!!user);
+        setStatus("ready");
+      });
+    };
+
+    if (window.__fbReady) { init(); }
+    else {
+      // Firebase module pas encore chargé — attendre l'événement
+      const handler = () => { init(); };
+      window.addEventListener("fb-ready", handler);
+      // Timeout 8s : si Firebase ne répond pas, afficher login quand même
+      const t = setTimeout(() => {
+        setStatus("ready");
+      }, 8000);
+      return () => {
+        window.removeEventListener("fb-ready", handler);
+        clearTimeout(t);
+      };
+    }
   }, []);
 
-  React.useEffect(() => {
-    if (!fbReady) return;
-    const fb = window.__fb;
-    const unsub = fb.onAuthStateChanged(fb.auth, (user) => {
-      setAuthed(!!user);
-      setCheckingAuth(false);
-    });
-    return () => unsub();
-  }, [fbReady]);
-
-  if (!fbReady || checkingAuth) {
+  if (status === "waiting") {
     return (
       <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",
         justifyContent:"center",background:"#f4f2ef",flexDirection:"column",gap:16}}>
-        <div style={{fontSize:40}}>⏳</div>
-        <div style={{fontSize:14,color:"#9e978d"}}>Connexion en cours…</div>
+        <div style={{fontSize:40}}>☁️</div>
+        <div style={{fontSize:14,color:"#9e978d",fontWeight:600}}>Initialisation…</div>
       </div>
     );
   }
@@ -3393,6 +3401,7 @@ function Root() {
 
   return <App />;
 }
+
 
 ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
 </script>

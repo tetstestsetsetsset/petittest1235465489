@@ -2724,7 +2724,7 @@ function App(){
       <PrintRecap rows={rows} refDate={refDate} stats={stats}/>
 
       {/* Overlay plein écran si fichier non connecté */}
-      {(!fsHandle || syncStatus==="no-file") && <FullScreenNoFile onConnect={()=>connectFile(false)}/>}
+      {/* Fichier local désactivé — synchronisation Firebase active */}
 
       {/* Header */}
       <div className="header-inner" style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"11px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:C.shadow,position:"sticky",top:0,zIndex:100,gap:12,flexWrap:"wrap"}}>

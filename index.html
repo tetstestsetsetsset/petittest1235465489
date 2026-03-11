@@ -2239,16 +2239,6 @@ function App(){
     return () => { unsub(); clearTimeout(timeout); };
   },[]);
 
-  // ── Écran de chargement Firebase ──────────────────────────────────────────
-  if(!fbLoaded) return (
-    <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",
-      justifyContent:"center",background:C.bg,flexDirection:"column",gap:16}}>
-      <div style={{fontSize:40}}>☁️</div>
-      <div style={{fontSize:15,color:C.muted,fontWeight:600}}>Chargement de vos données…</div>
-      <div style={{fontSize:12,color:C.light}}>Synchronisation Firebase en cours</div>
-    </div>
-  );
-
   // ── Récap fin de journée (après 16h50) ──
   useEffect(()=>{
     const check=()=>{
@@ -2626,6 +2616,15 @@ function App(){
 
   const regColor=r=>({mensuel:C.blue,trimestriel:C.lav,annuel:C.teal,association:C.purple,acompte:"#d97a1a"})[r]||C.blue;
   const regLabel=r=>({mensuel:"Mensuel",trimestriel:"Trim.",annuel:"Annuel",association:"Asso.",acompte:"Acompte"})[r]||r;
+
+  if(!fbLoaded) return(
+    <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",
+      justifyContent:"center",background:C.bg,flexDirection:"column",gap:16}}>
+      <div style={{fontSize:40}}>☁️</div>
+      <div style={{fontSize:15,color:C.muted,fontWeight:600}}>Chargement de vos données…</div>
+      <div style={{fontSize:12,color:C.light}}>Synchronisation Firebase en cours</div>
+    </div>
+  );
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',sans-serif",color:C.text}}>

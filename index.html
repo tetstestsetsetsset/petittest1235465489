@@ -2170,8 +2170,6 @@ function ReviewModeOverlay({rows,filtered,onClose}){
 }
 
 function App(){
-  // ── Démarrage : on affiche un écran de chargement le temps que Firebase réponde
-  const [fbLoaded, setFbLoaded] = useState(false);
   const [rows,setRows]=useState(()=>{
     // Ne charger le localStorage qu'en fallback si Firebase ne répond pas
     const s=lsLoad();const curM=getCurrentMonthKey();
@@ -2220,23 +2218,23 @@ function App(){
 
   // ── Firebase : synchronisation multi-appareils ────────────────────────────
   useEffect(()=>{
-    if(!window.__fb) { setFbLoaded(true); return; }
-    // Écouter les changements en temps réel
-    const unsub = fbSubscribe((data)=>{
-      setFbLoaded(true); // Firebase a répondu — on peut afficher l'app
-      if(!data) return;
-      const curM = getCurrentMonthKey();
-      if(data.lastResetMonth && data.lastResetMonth !== curM){
-        setRows(applyMonthlyReset(data.rows, data.lastResetMonth));
-      } else if(data.rows) {
-        setRows(data.rows);
-      }
-      if(data.nextId) setNextId(data.nextId);
-      lsSave(data);
-    });
-    // Timeout de sécurité : si Firebase ne répond pas en 5s, afficher quand même
-    const timeout = setTimeout(() => setFbLoaded(true), 5000);
-    return () => { unsub(); clearTimeout(timeout); };
+    const subscribe = () => {
+      if(!window.__fb) return;
+      fbSubscribe((data)=>{
+        if(!data) return;
+        const curM = getCurrentMonthKey();
+        if(data.lastResetMonth && data.lastResetMonth !== curM){
+          setRows(applyMonthlyReset(data.rows, data.lastResetMonth));
+        } else if(data.rows) {
+          setRows(data.rows);
+        }
+        if(data.nextId) setNextId(data.nextId);
+        lsSave(data);
+      });
+    };
+    if(window.__fbReady){ subscribe(); }
+    else { window.addEventListener("fb-ready", subscribe); }
+    return () => window.removeEventListener("fb-ready", subscribe);
   },[]);
 
   // ── Récap fin de journée (après 16h50) ──
@@ -2616,15 +2614,6 @@ function App(){
 
   const regColor=r=>({mensuel:C.blue,trimestriel:C.lav,annuel:C.teal,association:C.purple,acompte:"#d97a1a"})[r]||C.blue;
   const regLabel=r=>({mensuel:"Mensuel",trimestriel:"Trim.",annuel:"Annuel",association:"Asso.",acompte:"Acompte"})[r]||r;
-
-  if(!fbLoaded) return(
-    <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",
-      justifyContent:"center",background:C.bg,flexDirection:"column",gap:16}}>
-      <div style={{fontSize:40}}>☁️</div>
-      <div style={{fontSize:15,color:C.muted,fontWeight:600}}>Chargement de vos données…</div>
-      <div style={{fontSize:12,color:C.light}}>Synchronisation Firebase en cours</div>
-    </div>
-  );
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',sans-serif",color:C.text}}>
